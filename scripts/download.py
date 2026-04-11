@@ -1,5 +1,5 @@
 """
-青空文庫から夏目漱石「吾輩は猫である」をダウンロードして前処理するスクリプト
+青空文庫から夏目漱石の作品をダウンロードして前処理するスクリプト
 """
 
 import re
@@ -7,62 +7,64 @@ import zipfile
 from pathlib import Path
 from urllib.request import urlretrieve
 
+# ── ダウンロードする作品リスト ───────────────────────────────────────────────
+WORKS = [
+    {
+        "name": "wagahai",
+        "title": "吾輩は猫である",
+        "url": "https://www.aozora.gr.jp/cards/000148/files/789_ruby_5639.zip",
+    },
+    {
+        "name": "botchan",
+        "title": "坊っちゃん",
+        "url": "https://www.aozora.gr.jp/cards/000148/files/752_ruby_2438.zip",
+    },
+    {
+        "name": "kokoro",
+        "title": "こころ",
+        "url": "https://www.aozora.gr.jp/cards/000148/files/773_ruby_5968.zip",
+    },
+    {
+        "name": "sanshiro",
+        "title": "三四郎",
+        "url": "https://www.aozora.gr.jp/cards/000148/files/794_ruby_4237.zip",
+    },
+]
 
-def download_aozora_text():
-    """青空文庫からテキストをダウンロード"""
-    # 吾輩は猫である（夏目漱石）のURL
-    url = "https://www.aozora.gr.jp/cards/000148/files/789_ruby_5639.zip"
+RAW_DIR = Path("data/raw")
+PROCESSED_DIR = Path("data/processed")
 
-    # data/rawディレクトリを作成
-    raw_dir = Path("data/raw")
-    raw_dir.mkdir(parents=True, exist_ok=True)
 
-    zip_path = raw_dir / "wagahai.zip"
+def download_work(name: str, title: str, url: str) -> Path:
+    """1作品をダウンロードして解凍し、生テキストのパスを返す"""
+    work_dir = RAW_DIR / name
+    work_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"ダウンロード中: {url}")
+    zip_path = work_dir / f"{name}.zip"
+    print(f"ダウンロード中: {title}")
     urlretrieve(url, zip_path)
-    print(f"保存完了: {zip_path}")
 
-    # zipファイルを解凍
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(raw_dir)
-
-    print(f"解凍完了: {raw_dir}")
-
-    # zipファイルを削除
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extractall(work_dir)
     zip_path.unlink()
 
-    return raw_dir
+    txt_files = list(work_dir.glob("*.txt"))
+    if not txt_files:
+        raise FileNotFoundError(f"{work_dir} にテキストファイルが見つかりません")
+    return txt_files[0]
 
 
-def clean_text(text):
-    """
-    青空文庫のテキストから不要な記号を除去
-    - ヘッダー・フッター（注記部分）を削除
-    - ルビ(《》)を削除
-    - 注記(［＃〜］)を削除
-    - 縦書き記号を削除
-    """
-    # 改行コードを正規化してから行分割
+def clean_text(text: str) -> str:
+    """青空文庫テキストの前処理"""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     lines = text.split("\n")
 
-    # 青空文庫フォーマット:
-    #   タイトル・著者 → 区切り線 → 記号説明 → 区切り線 → 本文 → 底本フッター
-    # 区切り線: ハイフン10文字以上で構成される行
-    # 本文開始: 最後の区切り線の次の行
-    # 本文終了: 「底本：」で始まるフッター行（青空文庫の書式規約）
     separator = re.compile(r"^-{10,}$")
     separators = [i for i, line in enumerate(lines) if separator.match(line.strip())]
-
     if not separators:
-        raise ValueError(
-            "本文の区切り線が見つかりませんでした（ハイフン10文字以上の行がありません）"
-        )
+        raise ValueError("本文の区切り線が見つかりませんでした")
 
-    start_idx = separators[-1] + 1  # 最後の区切り線の次の行から本文開始
-
-    # フッター開始行（底本：）を本文終了とする
+    start_idx = separators[-1] + 1
     end_idx = len(lines)
     footer = re.compile(r"^底本[：:]")
     for i in range(start_idx, len(lines)):
@@ -70,76 +72,35 @@ def clean_text(text):
             end_idx = i
             break
 
-    # 本文のみ抽出
     text = "\n".join(lines[start_idx:end_idx])
-
-    # ルビを削除: 《ふりがな》
-    text = re.sub(r"《[^》]*》", "", text)
-
-    # 注記を削除: ［＃〜］
-    text = re.sub(r"［＃[^］]*］", "", text)
-
-    # | (ルビの開始記号)を削除
+    text = re.sub(r"《[^》]*》", "", text)   # ルビ削除
+    text = re.sub(r"［＃[^］]*］", "", text)  # 注記削除
     text = text.replace("|", "")
-
-    # 行末の余分な空白を削除
     text = "\n".join(line.rstrip() for line in text.split("\n"))
-
-    # 連続する空行を1行にまとめる
     text = re.sub(r"\n{3,}", "\n\n", text)
-
     return text.strip()
 
 
-def preprocess_text(raw_dir):
-    """テキストファイルを読み込んで前処理"""
-    # 解凍されたテキストファイルを探す（.txtファイル）
-    txt_files = list(raw_dir.glob("*.txt"))
+def main() -> None:
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-    if not txt_files:
-        raise FileNotFoundError(f"{raw_dir}にテキストファイルが見つかりません")
+    for work in WORKS:
+        name, title, url = work["name"], work["title"], work["url"]
+        output_path = PROCESSED_DIR / f"{name}_cleaned.txt"
 
-    # 最初のテキストファイルを使用
-    txt_file = txt_files[0]
-    print(f"読み込み中: {txt_file}")
+        if output_path.exists():
+            print(f"スキップ (既存): {title}")
+            continue
 
-    # Shift-JISで読み込み（青空文庫はShift-JIS）
-    with open(txt_file, encoding="shift_jis") as f:
-        text = f.read()
-
-    print(f"元テキスト文字数: {len(text)}")
-
-    # 前処理
-    cleaned_text = clean_text(text)
-    print(f"前処理後文字数: {len(cleaned_text)}")
-
-    # data/processedディレクトリに保存
-    processed_dir = Path("data/processed")
-    processed_dir.mkdir(parents=True, exist_ok=True)
-
-    output_path = processed_dir / "wagahai_cleaned.txt"
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(cleaned_text)
-
-    print(f"保存完了: {output_path}")
-
-    return output_path
-
-
-def main():
-    """メイン処理"""
-    print("=" * 50)
-    print("青空文庫テキストダウンロード & 前処理")
-    print("=" * 50)
-
-    # ダウンロード
-    raw_dir = download_aozora_text()
-
-    # 前処理
-    output_path = preprocess_text(raw_dir)
-
-    print("\n✅ 完了!")
-    print(f"前処理済みテキスト: {output_path}")
+        try:
+            raw_path = download_work(name, title, url)
+            with raw_path.open(encoding="shift_jis") as f:
+                text = f.read()
+            cleaned = clean_text(text)
+            output_path.write_text(cleaned, encoding="utf-8")
+            print(f"保存完了: {output_path}  ({len(cleaned):,}文字)")
+        except Exception as e:
+            print(f"エラー ({title}): {e}")
 
 
 if __name__ == "__main__":

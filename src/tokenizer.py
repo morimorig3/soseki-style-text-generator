@@ -5,7 +5,7 @@ from pathlib import Path
 import MeCab
 import numpy as np
 
-INPUT_PATH = Path("data/processed/wagahai_cleaned.txt")
+PROCESSED_DIR = Path("data/processed")
 VOCAB_PATH = Path("data/processed/vocab.pkl")
 TRAIN_DATA_PATH = Path("data/processed/train_data.npz")
 
@@ -57,11 +57,16 @@ def create_dataset(
 
 
 def main() -> None:
-    if not INPUT_PATH.exists():
-        print(f"ファイルが見つかりません: {INPUT_PATH}", file=sys.stderr)
+    cleaned_files = sorted(PROCESSED_DIR.glob("*_cleaned.txt"))
+    if not cleaned_files:
+        print(f"*_cleaned.txt が見つかりません: {PROCESSED_DIR}", file=sys.stderr)
         sys.exit(1)
 
-    text = INPUT_PATH.read_text(encoding="utf-8")
+    print(f"対象ファイル ({len(cleaned_files)}件):")
+    for p in cleaned_files:
+        print(f"  {p.name}")
+
+    text = "\n\n".join(p.read_text(encoding="utf-8") for p in cleaned_files)
 
     print("形態素解析中...")
     words = tokenize_text(text)

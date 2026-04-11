@@ -1,10 +1,28 @@
-# soseki-style-text-generator
+# 夏目漱石風のテキスト生成AIくん
 
-夏目漱石風のテキスト生成AI
+ゼロから作るDeepLearning1 の演習としてシンプルなニューラルネットワークの予測モデルを実装しました。
+漱石の4つの作品を形態素解析して学習データとしてモデルに学習させています。
 
-「吾輩は猫である」をDeep Learningで学習し、単語を入力すると次の単語を予測するモデルです。
+ゼロつく1の演習なので、RNNやTransformerは使っていません。
+そのため生成精度には限界がありますが単語の予測のモデルとしてシンプルなものにできたのではないかと思います。
 
----
+**ハイパーパラメータ**
+
+| 項目 | 値 |
+|---|---|
+| エポック | 10 |
+| ミニバッチサイズ | 128 |
+| 学習率 | 0.01 |
+| 更新手法 | Adam (β1=0.9, β2=0.999) |
+| Embedding dim | 100 |
+| 隱れ層 | 128 |
+| 語彙数 | 19,401 |
+| 学習データ数 | 475,538 |
+
+学習データは青空文庫から漱石の「吾輩は猫である」「坊ちゃん」「三四郎」「こころ」を利用しています。
+語彙数に関してはMeCabを利用して、それぞれの文章を形態素解析して分解しています。
+
+# develop
 
 ## セットアップ
 
@@ -47,7 +65,7 @@ uv pip install -r requirements.txt
 python scripts/download.py
 
 # 形態素解析してデータセット作成
-python src/tokenize.py
+python -m src.tokenizer
 ```
 
 ---
@@ -57,13 +75,13 @@ python src/tokenize.py
 ### 学習
 
 ```bash
-python src/train.py
+python -m src.train
 ```
 
 ### テキスト生成
 
 ```bash
-python src/generate.py --input "吾輩"
+python -m src.generate --input "吾輩"
 ```
 
 ---
@@ -78,7 +96,7 @@ soseki-style-text-generator/
 ├── scripts/
 │   └── download.py       # データダウンロードスクリプト
 ├── src/
-│   ├── tokenize.py       # 形態素解析
+│   ├── tokenizer.py      # 形態素解析
 │   ├── model.py          # モデル定義
 │   ├── train.py          # 学習
 │   └── generate.py       # テキスト生成

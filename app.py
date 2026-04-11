@@ -70,8 +70,13 @@ def set_start_word(word: str, word_to_id: dict) -> None:
 def main() -> None:
     st.set_page_config(page_title="漱石風テキスト生成AI", layout="centered")
 
-    st.title("夏目漱石風テキスト生成AI")
-    st.caption("「吾輩は猫である」を学習したAIが次の単語を予測します")
+    st.title("夏目漱石風テキスト生成AIくん")
+    st.caption(
+        "ゼロから作るDeep Learning 1をベースに、NumPyのみで実装したシンプルなニューラルネットワークモデルです。"
+    )
+    st.caption(
+        "「吾輩は猫である」「坊ちゃん」「三四郎」「こころ」を学習データとして次の単語を予測します。RNNやTranformerを使わないため、文脈を長く保持することはできませんが、単純な構造でどこまで漱石っぽい文章が生成できるか試してみてください！"
+    )
 
     model, word_to_id, id_to_word, frequent_words = load_resources()
     init_state()
@@ -114,9 +119,15 @@ def main() -> None:
 
     if st.session_state.current_text:
         text = "".join(st.session_state.current_text)
-        st.markdown(f"<p style='font-size:1.1rem; line-height:2.0;'>{text}</p>", unsafe_allow_html=True)
+        st.markdown(
+            f"<p style='font-size:1.1rem; line-height:2.0;'>{text}</p>",
+            unsafe_allow_html=True,
+        )
     else:
-        st.markdown("<p style='color:gray;'>（開始単語を選択してください）</p>", unsafe_allow_html=True)
+        st.markdown(
+            "<p style='color:gray;'>（開始単語を選択してください）</p>",
+            unsafe_allow_html=True,
+        )
 
     # ── 設定 ─────────────────────────────────────────────────────────────────
     st.divider()
@@ -165,7 +176,7 @@ def main() -> None:
 
     with col_sentence:
         if st.button(
-            "1文生成 (。まで)",
+            "1文生成",
             disabled=add_disabled,
             use_container_width=True,
         ):
