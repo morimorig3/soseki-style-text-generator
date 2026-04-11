@@ -49,9 +49,9 @@ def sample_next(
 # ── Session State 初期化 ─────────────────────────────────────────────────────
 def init_state() -> None:
     if "current_text" not in st.session_state:
-        st.session_state.current_text: list[str] = []
+        st.session_state.current_text = []
     if "last_word_id" not in st.session_state:
-        st.session_state.last_word_id: int | None = None
+        st.session_state.last_word_id = None
 
 
 def reset() -> None:
