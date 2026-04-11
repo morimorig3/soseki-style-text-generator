@@ -1,9 +1,9 @@
-# データファイル
+# 中間生成物(コミットしない)
 data/raw/
-data/processed/*.txt
+data/processed/
 
-# 学習済みモデル
-models/
+# 学習途中のモデル(コミットしない)
+models/checkpoint_*.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
