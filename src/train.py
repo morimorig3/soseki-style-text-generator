@@ -8,7 +8,7 @@ import numpy as np
 from src.model import NextWordPredictor
 
 # ── ハイパーパラメータ ───────────────────────────────────────────────────────
-EPOCHS = 10
+EPOCHS = 30
 BATCH_SIZE = 128
 LEARNING_RATE = 0.01
 EMBEDDING_DIM = 100

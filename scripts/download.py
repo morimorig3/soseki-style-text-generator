@@ -14,21 +14,21 @@ WORKS = [
         "title": "吾輩は猫である",
         "url": "https://www.aozora.gr.jp/cards/000148/files/789_ruby_5639.zip",
     },
-    {
-        "name": "botchan",
-        "title": "坊っちゃん",
-        "url": "https://www.aozora.gr.jp/cards/000148/files/752_ruby_2438.zip",
-    },
-    {
-        "name": "kokoro",
-        "title": "こころ",
-        "url": "https://www.aozora.gr.jp/cards/000148/files/773_ruby_5968.zip",
-    },
-    {
-        "name": "sanshiro",
-        "title": "三四郎",
-        "url": "https://www.aozora.gr.jp/cards/000148/files/794_ruby_4237.zip",
-    },
+    # {
+    #     "name": "botchan",
+    #     "title": "坊っちゃん",
+    #     "url": "https://www.aozora.gr.jp/cards/000148/files/752_ruby_2438.zip",
+    # },
+    # {
+    #     "name": "kokoro",
+    #     "title": "こころ",
+    #     "url": "https://www.aozora.gr.jp/cards/000148/files/773_ruby_5968.zip",
+    # },
+    # {
+    #     "name": "sanshiro",
+    #     "title": "三四郎",
+    #     "url": "https://www.aozora.gr.jp/cards/000148/files/794_ruby_4237.zip",
+    # },
 ]
 
 RAW_DIR = Path("data/raw")
@@ -73,7 +73,7 @@ def clean_text(text: str) -> str:
             break
 
     text = "\n".join(lines[start_idx:end_idx])
-    text = re.sub(r"《[^》]*》", "", text)   # ルビ削除
+    text = re.sub(r"《[^》]*》", "", text)  # ルビ削除
     text = re.sub(r"［＃[^］]*］", "", text)  # 注記削除
     text = text.replace("|", "")
     text = "\n".join(line.rstrip() for line in text.split("\n"))
