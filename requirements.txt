@@ -1,0 +1,4 @@
+numpy
+matplotlib
+mecab-python3
+streamlit
