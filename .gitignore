@@ -1,6 +1,8 @@
 # 中間生成物(コミットしない)
 data/raw/
-data/processed/
+data/processed/*.txt
+data/processed/*.pkl
+data/processed/*.npz
 
 # 学習途中のモデル(コミットしない)
 models/checkpoint_*.pkl
