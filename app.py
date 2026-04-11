@@ -52,6 +52,8 @@ def init_state() -> None:
         st.session_state.current_text = []
     if "last_word_id" not in st.session_state:
         st.session_state.last_word_id = None
+    if "selected_word" not in st.session_state:
+        st.session_state.selected_word = None
 
 
 def reset() -> None:
@@ -78,78 +80,109 @@ def main() -> None:
     st.divider()
     st.subheader("開始単語を選択")
 
-    # frequent_words を先頭20語 + ランダムボタンで表示
-    display_words = [w for w in frequent_words[:20] if w in word_to_id]
+    candidates = [w for w in frequent_words if w in word_to_id]
 
-    cols = st.columns(5)
-    for i, word in enumerate(display_words):
-        if cols[i % 5].button(word, key=f"word_{word}"):
+    # ランダムボタンで session_state を更新 → selectbox の index に反映
+    if st.session_state.selected_word not in candidates:
+        st.session_state.selected_word = candidates[0]
+
+    col_select, col_random = st.columns([4, 1])
+
+    with col_random:
+        if st.button("🎲", use_container_width=True, help="ランダム選択"):
+            word = str(np.random.choice(candidates))
+            st.session_state.selected_word = word
             set_start_word(word, word_to_id)
             st.rerun()
 
-    if st.button("🎲 ランダム", key="random"):
-        candidates = [w for w in frequent_words if w in word_to_id]
-        word = np.random.choice(candidates)
-        set_start_word(word, word_to_id)
+    with col_select:
+        selected = st.selectbox(
+            "開始単語",
+            candidates,
+            index=candidates.index(st.session_state.selected_word),
+            label_visibility="collapsed",
+        )
+
+    if selected != st.session_state.selected_word:
+        st.session_state.selected_word = selected
+        set_start_word(selected, word_to_id)
         st.rerun()
 
     # ── 現在の文章 ───────────────────────────────────────────────────────────
     st.divider()
     st.subheader("現在の文章")
 
-    text = (
-        " ".join(st.session_state.current_text)
-        if st.session_state.current_text
-        else "（開始単語を選択してください）"
-    )
-    st.text_area(
-        "生成テキスト",
-        value=text,
-        height=120,
-        disabled=True,
-        label_visibility="collapsed",
-    )
+    if st.session_state.current_text:
+        text = "".join(st.session_state.current_text)
+        st.markdown(f"<p style='font-size:1.1rem; line-height:2.0;'>{text}</p>", unsafe_allow_html=True)
+    else:
+        st.markdown("<p style='color:gray;'>（開始単語を選択してください）</p>", unsafe_allow_html=True)
+
+    # ── 設定 ─────────────────────────────────────────────────────────────────
+    st.divider()
+    st.subheader("設定")
+
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        n_words = st.slider(
+            "追加する単語数",
+            min_value=1,
+            max_value=50,
+            value=10,
+            step=1,
+            help="ボタン1回で追加する単語の数",
+        )
+    with col_s2:
+        temperature = st.slider(
+            "Temperature",
+            min_value=0.5,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            help="低いほど確率の高い単語を選びやすくなります。高いほどランダム性が増します。",
+        )
+        col_lo, col_hi = st.columns(2)
+        col_lo.caption("← 保守的")
+        col_hi.caption("多様 →")
 
     # ── 操作ボタン ───────────────────────────────────────────────────────────
-    col_add, col_reset = st.columns([2, 1])
+    add_disabled = st.session_state.last_word_id is None
+    col_add, col_sentence, col_reset = st.columns([3, 3, 2])
 
     with col_add:
-        add_disabled = st.session_state.last_word_id is None
         if st.button(
-            "次の単語を追加",
+            f"単語を {n_words} 個追加",
             disabled=add_disabled,
             type="primary",
             use_container_width=True,
         ):
-            temperature = st.session_state.get("temperature", 1.0)
-            next_id = sample_next(model, st.session_state.last_word_id, temperature)
-            next_word = id_to_word[next_id]
-            st.session_state.current_text.append(next_word)
-            st.session_state.last_word_id = next_id
+            current_id = st.session_state.last_word_id
+            for _ in range(n_words):
+                current_id = sample_next(model, current_id, temperature)
+                st.session_state.current_text.append(id_to_word[current_id])
+            st.session_state.last_word_id = current_id
+            st.rerun()
+
+    with col_sentence:
+        if st.button(
+            "1文生成 (。まで)",
+            disabled=add_disabled,
+            use_container_width=True,
+        ):
+            current_id = st.session_state.last_word_id
+            for _ in range(100):  # 無限ループ防止の上限
+                current_id = sample_next(model, current_id, temperature)
+                word = id_to_word[current_id]
+                st.session_state.current_text.append(word)
+                if word == "。":
+                    break
+            st.session_state.last_word_id = current_id
             st.rerun()
 
     with col_reset:
         if st.button("リセット", use_container_width=True):
             reset()
             st.rerun()
-
-    # ── 設定 ─────────────────────────────────────────────────────────────────
-    st.divider()
-    st.subheader("設定")
-
-    temperature = st.slider(
-        "Temperature",
-        min_value=0.5,
-        max_value=2.0,
-        value=1.0,
-        step=0.1,
-        help="低いほど確率の高い単語を選びやすくなります。高いほどランダム性が増します。",
-    )
-    st.session_state["temperature"] = temperature
-
-    col_lo, col_hi = st.columns(2)
-    col_lo.caption("← 0.5: 保守的 (高頻度語に集中)")
-    col_hi.caption("2.0: 多様 (ランダム性が強い) →")
 
 
 if __name__ == "__main__":
