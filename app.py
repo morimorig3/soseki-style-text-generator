@@ -53,7 +53,7 @@ def init_state() -> None:
     if "last_word_id" not in st.session_state:
         st.session_state.last_word_id = None
     if "selected_word" not in st.session_state:
-        st.session_state.selected_word = None
+        st.session_state.selected_word = "吾輩"
 
 
 def reset() -> None:
@@ -80,6 +80,10 @@ def main() -> None:
 
     model, word_to_id, id_to_word, frequent_words = load_resources()
     init_state()
+
+    # 初回のみ「吾輩」をセット
+    if not st.session_state.current_text:
+        set_start_word(st.session_state.selected_word, word_to_id)
 
     # ── 開始単語の選択 ───────────────────────────────────────────────────────
     st.divider()
@@ -139,7 +143,7 @@ def main() -> None:
             "追加する単語数",
             min_value=1,
             max_value=50,
-            value=10,
+            value=1,
             step=1,
             help="ボタン1回で追加する単語の数",
         )
